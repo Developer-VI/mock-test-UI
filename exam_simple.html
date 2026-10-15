@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mock Test UI</title>
+    <!-- Tailwind CSS v3 -->
+    <!-- NOTE: Live Server (Ritwick Dey's version) was used during the development. It is needed. I think it is ALT + L and ALT + O to start and ALT+L and ALT+P to stop-->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        exam: {
+                            bg: '#0f172a',
+                            surface: '#1e293b',
+                            border: '#334155',
+                            accent: '#3b82f6',
+                            accentHover: '#2563eb',
+                            correct: '#10b981',
+                            wrong: '#ef4444',
+                            review: '#a855f7',
+                            reviewDark: '#7e22ce'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .grid-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .grid-container::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .grid-container::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .grid-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        button,
+        .q-btn {
+            transition: all 0.15s ease;
+        }
+        .question-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #1e293b;
+            border-radius: 0.75rem;
+            padding: 0.5rem 0.25rem;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            border: 1px solid #334155;
+            min-width: 60px;
+        }
+        .question-tile:hover {
+            background-color: #2d3a4e;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+        .question-tile.answered {
+            background: linear-gradient(145deg, #065f46, #047857);
+            border-left: 3px solid #34d399;
+        }
+        .question-tile.review {
+            background: linear-gradient(145deg, #6b21a5, #9333ea);
+            border-left: 3px solid #c084fc;
+        }
+        .question-number {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #e2e8f0;
+        }
+        .answer-preview {
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 20px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            background-color: rgba(0, 0, 0, 0.4);
+            color: #86efac;
+        }
+        .answer-preview.empty {
+            color: #64748b;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        .answer-preview.review-text {
+            color: #e9d5ff;
+            font-weight: 600;
+        }
+        .grid-container {
+            scrollbar-width: thin;
+        }
+        .option-btn.active {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.2) !important;
+            color: #3b82f6 !important;
+        }
+        .submit-hover-container {
+            position: relative;
+        }
+        .submit-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+        .submit-btn:active {
+            transform: translateY(1px);
+        }
+        .disabled-submit-btn {
+            cursor: not-allowed !important;
+            opacity: 0.75;
+            filter: grayscale(0.1);
+        }
+        .disabled-submit-btn:hover {
+            transform: none !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2) !important;
+        }
+        .pdf-disabled-overlay {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .pdf-disabled-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.03), transparent 70%);
+        }
+
+        .pdf-disabled-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .pdf-disabled-overlay:hover .pdf-disabled-content {
+            opacity: 0.7;
+        }
+
+        .pdf-disabled-icon {
+            font-size: 3rem;
+            color: #475569;
+            transition: all 0.3s;
+        }
+
+        .pdf-disabled-overlay:hover .pdf-disabled-icon {
+            color: #64748b;
+            transform: scale(1.05);
+        }
+
+        .pdf-disabled-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #475569;
+            letter-spacing: 0.5px;
+            font-family: monospace;
+        }
+
+        .pdf-disabled-sub {
+            font-size: 0.7rem;
+            color: #334155;
+            font-family: monospace;
+        }
+        .timer-disabled-text {
+            color: #f97316;
+            letter-spacing: 0.5px;
+        }
+        /* Modal animation */
+        #confirmModal.show {
+            display: flex !important;
+        }
+        #confirmModal.show #confirmModalContent {
+            animation: modalSlideIn 0.25s ease forwards;
+        }
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        #confirmModal.hide #confirmModalContent {
+            animation: modalSlideOut 0.2s ease forwards;
+        }
+        @keyframes modalSlideOut {
+            from {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+        }
+
+        /* Start Toast - Dark theme matching exam UI */
+        #startToast {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #startToast .toast-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 92%;
+            padding: 2rem 2rem 1.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+        }
+        #startToast .toast-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+        #startToast .toast-header i {
+            color: #3b82f6;
+            font-size: 1.5rem;
+        }
+        #startToast .toast-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: -0.3px;
+        }
+        #startToast .toast-header .badge {
+            margin-left: auto;
+            background: #0f172a;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+        #startToast .toast-body {
+            margin-bottom: 1.5rem;
+        }
+        #startToast .toast-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            border: 1px solid #334155;
+        }
+        #startToast .toast-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.35rem 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+        }
+        #startToast .toast-info-item:last-child,
+        #startToast .toast-info-item:nth-last-child(2) {
+            border-bottom: none;
+        }
+        #startToast .toast-info-item .label {
+            color: #94a3b8;
+        }
+        #startToast .toast-info-item .value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        #startToast .toast-info-item .value.enabled {
+            color: #34d399;
+        }
+        #startToast .toast-info-item .value.disabled {
+            color: #f87171;
+        }
+        #startToast .toast-footer {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        #startToast .toast-btn {
+            flex: 1;
+            padding: 0.8rem;
+            background: #3b82f6;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.15s;
+            letter-spacing: 0.5px;
+        }
+        #startToast .toast-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        #startToast .toast-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* New textbox area in toast */
+        .toast-textbox-area {
+            margin-top: 1rem;
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            border: 1px solid #334155;
+        }
+        .toast-textbox-area label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        .toast-textbox-area label i {
+            color: #64748b;
+        }
+        .toast-textbox-area textarea {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 100px;
+            max-height: 300px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .toast-textbox-area textarea:focus {
+            border-color: #3b82f6;
+        }
+        .toast-textbox-area textarea::placeholder {
+            color: #475569;
+            font-style: italic;
+        }
+
+        .hidden-toast {
+            display: none !important;
+        }
+
+        /* Tooltip for ATL */
+        .submit-btn[data-atl-tooltip]:hover::after {
+            content: attr(data-atl-tooltip);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            pointer-events: none;
+        }
+        .submit-btn[data-atl-tooltip]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: calc(100% + 2px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #334155;
+            z-index: 50;
+            pointer-events: none;
+        }
+        .submit-btn-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-exam-bg text-gray-200 font-sans antialiased h-screen overflow-hidden">
+
+    <!-- START TOAST -->
+    <div id="startToast">
+        <div class="toast-card">
+            <div class="toast-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>Mock Examination</h2>
+            </div>
+            <div class="toast-body">
+                <div class="toast-info">
+                    <div class="toast-info-item">
+                        <span class="label">Questions</span>
+                        <span class="value" id="toastTotalQs">UPDATING</span>
+                    </div>
+                    <div class="toast-info-item">
+                        <span class="label">Early Submit</span>
+                        <span class="value" id="toastEso">UPDATING</span>
+                    </div>
+                    <div class="toast-info-item">
+                        <span class="label">Timer</span>
+                        <span class="value" id="toastTimer">UPDATING</span>
+                    </div>
+                    <div class="toast-info-item">
+                        <span class="label">PDF Viewer</span>
+                        <span class="value" id="toastPdf">UPDATING</span>
+                    </div>
+                </div>
+
+                <div class="toast-textbox-area">
+                    <label>
+                        <i class="fas fa-sticky-note"></i>
+                        Scratch Notes (resizable, auto-saved)
+                    </label>
+                    <textarea id="scratchNotes" placeholder="Type anything here..."></textarea>
+                </div>
+            </div>
+            <div class="toast-footer">
+                <button class="toast-btn" id="startExamBtn">START EXAMINATION</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col h-screen max-w-full">
+
+        <header class="bg-exam-surface border-b border-exam-border px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg z-10">
+            <div class="flex items-center gap-4">
+                <div class="bg-exam-bg px-4 py-2 rounded-lg border border-exam-border">
+                    <span class="text-xs uppercase tracking-wider text-gray-400">Timer</span>
+                    <div class="font-mono text-3xl font-bold text-exam-accent" id="timerDisplay">Timer is Loading</div>
+                </div>
+                <div class="bg-exam-bg px-4 py-2 rounded-lg border border-exam-border">
+                    <span class="text-xs uppercase tracking-wider text-gray-400">Answered</span>
+                    <div class="text-3xl font-bold"><span id="answeredCount">0</span><span class="text-gray-500 text-xl">/<span id="TQS"></span></span></div>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <div class="flex items-center gap-2 text-xs bg-exam-bg px-3 py-1.5 rounded-full">
+                    <span class="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                    <span>Answered</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs bg-exam-bg px-3 py-1.5 rounded-full">
+                    <span class="w-3 h-3 bg-slate-700 rounded-full"></span>
+                    <span>Pending</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs bg-exam-bg px-3 py-1.5 rounded-full border border-exam-border">
+                    <i class="fas fa-ban text-sm" id="esdIcon"></i>
+                    <span id="esdStatusText">Early Submit: ENABLED</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs bg-exam-bg px-3 py-1.5 rounded-full border border-exam-border">
+                    <i class="fas fa-desktop text-sm" id="screenIcon"></i>
+                    <span id="screenStatusText">PDF: ENABLED</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+
+            <div id="leftPanelContainer" class="w-1/2 bg-black/30 border-r border-exam-border flex flex-col">
+                <div class="bg-exam-surface/50 px-4 py-2 border-b border-exam-border flex items-center gap-2 text-sm">
+                    <i class="fas fa-file-pdf text-red-400"></i>
+                    <span>Question Paper</span>
+                    <span class="text-gray-500 text-xs ml-auto">Use scroll / zoom</span>
+                </div>
+                <div id="pdfViewerArea" class="flex-1 p-2 relative">
+                </div>
+            </div>
+
+            <div class="w-1/2 bg-exam-surface flex flex-col overflow-hidden">
+
+                <div class="p-5 border-b border-exam-border space-y-5">
+                    <div>
+                        <div class="text-xs uppercase text-gray-400 tracking-wider mb-2">Multi-select options (MCQ / MMCQ)</div>
+                        <div class="flex gap-3 flex-wrap">
+                            <button id="optA" data-opt="A" class="option-btn w-14 h-14 rounded-xl bg-exam-bg border-2 border-exam-border text-xl font-bold hover:border-exam-accent transition-all">A</button>
+                            <button id="optB" data-opt="B" class="option-btn w-14 h-14 rounded-xl bg-exam-bg border-2 border-exam-border text-xl font-bold hover:border-exam-accent transition-all">B</button>
+                            <button id="optC" data-opt="C" class="option-btn w-14 h-14 rounded-xl bg-exam-bg border-2 border-exam-border text-xl font-bold hover:border-exam-accent transition-all">C</button>
+                            <button id="optD" data-opt="D" class="option-btn w-14 h-14 rounded-xl bg-exam-bg border-2 border-exam-border text-xl font-bold hover:border-exam-accent transition-all">D</button>
+                        </div>
+                        <div class="text-[11px] text-gray-500 mt-2">Click multiple letters for MMCQ. They stay selected. Numeric overrides letters.</div>
+                    </div>
+
+                    <div class="submit-hover-container relative">
+                        <div class="submit-btn-wrapper absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+                            <button id="globalSubmitBtn" class="submit-btn w-full font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-3 text-base tracking-wide border pointer-events-auto">
+                            </button>
+                        </div>
+                        <div class="text-[11px] text-blue-400 mt-2 text-center invisible">Submit Button</div>
+                    </div>
+                    <div class="border-t border-exam-border pt-4">
+                        <div class="text-xs uppercase text-gray-400 tracking-wider mb-2">Numerical / Type your answer (Integer / Decimal)</div>
+                        <div class="flex gap-3 items-center">
+                            <input type="text" id="numericInput" placeholder="e.g., 2.23, 42, -1.5" class="flex-1 bg-exam-bg border border-exam-border rounded-lg px-4 py-3 text-lg font-mono focus:outline-none focus:border-exam-accent transition-colors">
+                            <button id="clearEntryBtn" class="px-5 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg font-medium border border-red-500/30 transition-all flex items-center gap-2">
+                                <i class="fas fa-eraser"></i> CLEAR
+                            </button>
+                        </div>
+                        <div class="text-[11px] text-gray-500 mt-2">Numeric answer will replace any letter selection when you save.</div>
+                    </div>
+                </div>
+
+                <div class="mx-5 mb-2 bg-exam-bg/60 rounded-lg p-2 border border-exam-border text-sm flex items-center justify-between">
+                    <span class="text-gray-400">Current answer buffer:</span>
+                    <span id="bufferPreview" class="font-mono text-exam-accent font-bold">—</span>
+                </div>
+
+                <div class="flex-1 overflow-hidden flex flex-col px-5 pb-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs uppercase text-gray-400">Question grid — click any tile to save current answer</span>
+                    </div>
+                    <div class="grid-container overflow-y-auto pr-2" style="max-height: 100%;">
+                        <div id="questionsGrid" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 pb-2">
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-3 text-center border-t border-exam-border pt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="bg-exam-surface/80 border-t border-exam-border px-5 py-2 text-xs text-gray-400 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-lock text-exam-accent"></i>
+                <span>Secure Exam Mode — Answers auto-save per question</span>
+            </div>
+            <div>
+                Timer reaches zero OR click SUBMIT → answers.json auto-download
+            </div>
+        </footer>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden" style="display: none;">
+        <div class="bg-exam-surface rounded-2xl border border-exam-border max-w-md w-full mx-4 shadow-2xl transform transition-all scale-95" id="confirmModalContent">
+            <div class="p-6 border-b border-exam-border">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-2xl text-red-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Submit Exam?</h3>
+                        <p class="text-sm text-gray-400">This action cannot be undone.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-exam-bg rounded-lg p-4 border border-exam-border">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Questions answered:</span>
+                        <span class="text-white font-bold" id="modalAnsweredCount">0</span>
+                    </div>
+                    <div class="flex justify-between text-sm mt-2">
+                        <span class="text-gray-400">Questions unattempted:</span>
+                        <span class="text-yellow-400 font-bold" id="modalUnattemptedCount">0</span>
+                    </div>
+                    <div class="flex justify-between text-sm mt-2 pt-2 border-t border-exam-border">
+                        <span class="text-gray-400">Time remaining:</span>
+                        <span class="text-exam-accent font-mono font-bold" id="modalTimeRemaining">00:00:00</span>
+                    </div>
+                </div>
+                <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                    <p class="text-red-300 text-xs flex items-center gap-2">
+                        <i class="fas fa-lock text-sm"></i>
+                        <span>You will not be able to return after submitting.</span>
+                    </p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="modalCancelBtn" class="flex-1 px-4 py-3 bg-exam-bg border border-exam-border rounded-xl font-semibold text-gray-300 hover:bg-exam-border transition-colors">
+                        Cancel
+                    </button>
+                    <button id="modalConfirmBtn" class="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Submit & End
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TOTAL_QS = 50; // Change this to change the no. of questions
+        let timerSeconds = (2*60*60)+(10*60); // Change this to the desired amount
+        timerSeconds = timerSeconds + 1; // Fixing timer. Don't remove this pls
+        let timerInterval = null;
+        let examEnded = false;
+        document.getElementById("TQS").textContent = TOTAL_QS;
+
+        let ESD = true; // Change this to true in case you want early submit system to be active.
+        let SCREEN = true; // Change this to true if the pdf viewer is required. Set it to false if using a physical paper. Set it to true if using a digital pdf.
+        let TMD = true; // Functionality to disable the timer (true = timer disabled)
+        let ATL = -1; // Minimum time (in seconds) that must pass before early submission is allowed. Only applies when ESD = true. Put -1 to disable.
+        ATL = ATL + 1; // Timer Fix Again
+        // Note: Using digital paper needs a pdf named "SQP.pdf"
+
+        if (TMD === true) { // Obviously
+            ESD = true;
+        }
+
+        let studentAnswers = new Array(TOTAL_QS + 1).fill(null);
+
+        let selectedOptions = {
+            A: false,
+            B: false,
+            C: false,
+            D: false
+        };
+        let numericValue = "";
+
+        // Track exam start time for ATL
+        let examStartTime = null;
+        let atlLockActive = false;
+
+        const timerDisplay = document.getElementById('timerDisplay');
+        const answeredCountSpan = document.getElementById('answeredCount');
+        const questionsGridDiv = document.getElementById('questionsGrid');
+        const numericInput = document.getElementById('numericInput');
+        const clearEntryBtn = document.getElementById('clearEntryBtn');
+        const bufferPreviewSpan = document.getElementById('bufferPreview');
+        const pdfViewerArea = document.getElementById('pdfViewerArea');
+        let globalSubmitBtn = document.getElementById('globalSubmitBtn');
+
+        const optBtns = {
+            A: document.getElementById('optA'),
+            B: document.getElementById('optB'),
+            C: document.getElementById('optC'),
+            D: document.getElementById('optD')
+        };
+
+        const esdIconSpan = document.getElementById('esdIcon');
+        const esdStatusTextSpan = document.getElementById('esdStatusText');
+        const screenIconSpan = document.getElementById('screenIcon');
+        const screenStatusTextSpan = document.getElementById('screenStatusText');
+
+        // --- localStorage for scratch notes ---
+        // Honestly why did I add these?
+        const scratchTextarea = document.getElementById('scratchNotes');
+        const STORAGE_KEY = 'mock_exam_scratch_notes';
+
+        // Load saved notes from localStorage
+        function loadScratchNotes() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved !== null && scratchTextarea) {
+                    scratchTextarea.value = saved;
+                }
+            } catch (_) { /* ignore */ }
+        }
+
+        // Save notes to localStorage on input
+        function saveScratchNotes() {
+            try {
+                if (scratchTextarea) {
+                    localStorage.setItem(STORAGE_KEY, scratchTextarea.value);
+                }
+            } catch (_) { /* ignore */ }
+        }
+
+        // --- end scratch notes ---
+
+        function updatePDFViewerByScreenFlag() {
+            if (!pdfViewerArea) return;
+            pdfViewerArea.innerHTML = '';
+            if (SCREEN === true) {
+                const embed = document.createElement('embed');
+                embed.id = 'pdfViewer';
+                embed.src = 'SQP.pdf#toolbar=0';
+                embed.type = 'application/pdf';
+                embed.width = '100%';
+                embed.height = '100%';
+                embed.className = 'rounded-md shadow-2xl';
+                embed.style.minHeight = '400px';
+                embed.onerror = () => {
+                    if (embed.parentElement && embed.parentElement === pdfViewerArea) {
+                        pdfViewerArea.innerHTML = `<div class="flex items-center justify-center h-full bg-exam-bg rounded border border-exam-border flex-col p-6 text-center">
+                            <i class="fas fa-file-pdf text-5xl text-red-500 mb-3"></i>
+                            <p class="text-gray-300">PDF question paper not found.</p>
+                            <p class="text-gray-500 text-sm mt-2">Place "SQP.pdf" in the same directory or update src.</p>
+                        </div>`;
+                    }
+                };
+                pdfViewerArea.appendChild(embed);
+            } else {
+                const overlayDiv = document.createElement('div');
+                overlayDiv.className = 'pdf-disabled-overlay';
+                overlayDiv.innerHTML = `
+                    <div class="pdf-disabled-content">
+                        <i class="fas fa-eye-slash pdf-disabled-icon"></i>
+                        <span class="pdf-disabled-text">PDF VIEW DISABLED</span>
+                    </div>
+                `;
+                pdfViewerArea.appendChild(overlayDiv);
+            }
+        }
+
+        function updateScreenHeaderDisplay() {
+            if (SCREEN === true) {
+                screenIconSpan.className = 'fas fa-desktop text-sm text-green-400';
+                screenStatusTextSpan.innerHTML = 'PDF: ENABLED';
+                screenStatusTextSpan.classList.add('text-green-300');
+                screenStatusTextSpan.classList.remove('text-red-300');
+            } else {
+                screenIconSpan.className = 'fas fa-ban text-sm text-red-400';
+                screenStatusTextSpan.innerHTML = 'PDF: DISABLED';
+                screenStatusTextSpan.classList.add('text-red-300');
+                screenStatusTextSpan.classList.remove('text-green-300');
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function updateESDHeaderDisplay() {
+            if (ESD === false) {
+                esdIconSpan.className = 'fas fa-ban text-sm text-red-400';
+                esdStatusTextSpan.innerHTML = 'Early Submit: DISABLED';
+                esdStatusTextSpan.classList.add('text-red-300');
+                esdStatusTextSpan.classList.remove('text-green-300');
+            } else {
+                esdIconSpan.className = 'fas fa-check-circle text-sm text-green-400';
+                esdStatusTextSpan.innerHTML = 'Early Submit: ENABLED';
+                esdStatusTextSpan.classList.add('text-green-300');
+                esdStatusTextSpan.classList.remove('text-red-300');
+            }
+        }
+
+        function getAtlRemainingSeconds() {
+            if (!ESD) return 0;
+            if (examStartTime === null) return ATL;
+            const elapsed = (Date.now() - examStartTime) / 1000;
+            const remaining = Math.max(0, ATL - elapsed);
+            return Math.ceil(remaining);
+        }
+
+        function isAtlLockActive() {
+            if (!ESD) return false;
+            if (ATL <= 0) return false;
+            return getAtlRemainingSeconds() > 0;
+        }
+
+        function renderSubmitButton() {
+            const container = document.querySelector('.submit-btn-wrapper');
+            if (!container) return;
+            const oldBtn = document.getElementById('globalSubmitBtn');
+            if (oldBtn) oldBtn.remove();
+            const newBtn = document.createElement('button');
+            newBtn.id = 'globalSubmitBtn';
+            newBtn.className =
+                'submit-btn w-full font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-3 text-base tracking-wide border pointer-events-auto';
+            
+            // Check ATL status
+            const atlRemaining = getAtlRemainingSeconds();
+            const atlLocked = isAtlLockActive();
+
+            if (ESD === false) {
+                // ESD disabled - completely disabled - 100% disabled - Its definitely disabled - variable = False - Why am I still here?
+                newBtn.classList.add('bg-blue-500/20', 'border-blue-500/30', 'text-blue-300', 'disabled-submit-btn');
+                newBtn.style.background = 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(37,99,235,0.25))';
+                newBtn.innerHTML =
+                    `<i class="fas fa-ban text-lg"></i><span>EARLY SUBMIT IS DISABLED BY EXAMINER</span><i class="fas fa-lock text-sm opacity-70"></i>`;
+                newBtn.disabled = true;
+                newBtn.style.cursor = 'not-allowed';
+                newBtn.removeAttribute('data-atl-tooltip');
+                newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const toast = document.createElement('div');
+                    toast.className =
+                        'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-800 text-white px-4 py-2 rounded-lg text-xs z-50 shadow-lg';
+                    toast.innerText = 'Early submission is disabled by examiner.';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 2000);
+                });
+            } else if (atlLocked) {
+                // ESD enabled but ATL is active - submit is locked until the timer runs out.
+                // Wait, what happens if this timer exceeds the test timer 🤔
+                newBtn.classList.add('bg-yellow-500/20', 'border-yellow-500/30', 'text-yellow-300', 'disabled-submit-btn');
+                newBtn.style.background = 'linear-gradient(135deg, rgba(234,179,8,0.15), rgba(202,138,4,0.25))';
+                const timeLeft = atlRemaining;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                newBtn.innerHTML =
+                    `<i class="fas fa-hourglass-half text-lg"></i><span>SUBMIT LOCKED (${timeStr} remaining)</span><i class="fas fa-lock text-sm opacity-70"></i>`;
+                newBtn.disabled = true;
+                newBtn.style.cursor = 'not-allowed';
+                newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const remaining = getAtlRemainingSeconds();
+                    const mins = Math.floor(remaining / 60);
+                    const secs = remaining % 60;
+                    const msg = mins > 0 ? `${mins} minute${mins > 1 ? 's' : ''} and ${secs} second${secs > 1 ? 's' : ''}` : `${secs} second${secs > 1 ? 's' : ''}`;
+                    const toast = document.createElement('div');
+                    toast.className =
+                        'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-yellow-700 text-white px-4 py-2 rounded-lg text-xs z-50 shadow-lg';
+                    toast.innerText = `Early submission is locked for ${msg}. Please wait.`;
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                });
+            } else {
+                // ESD enabled and ATL satisfied (or ATL = 0) - fully enabled
+                newBtn.classList.add('bg-gradient-to-r', 'from-orange-600', 'to-red-600', 'hover:from-red-600',
+                    'hover:to-red-700', 'border-red-400/30');
+                newBtn.classList.remove('disabled-submit-btn');
+                newBtn.innerHTML =
+                    `<i class="fas fa-sign-out-alt text-lg"></i><span>SUBMIT EXAM & END EARLY</span><i class="fas fa-flag-checkered text-sm opacity-80"></i>`;
+                newBtn.disabled = false;
+                newBtn.removeAttribute('data-atl-tooltip');
+                newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    earlySubmitExam();
+                });
+            }
+            container.appendChild(newBtn);
+            globalSubmitBtn = newBtn;
+        }
+
+        function formatAnswerForDisplay(answer) {
+            if (!answer || answer === "") return "—";
+            if (answer.length > 12) return answer.substring(0, 10) + "..";
+            return answer;
+        }
+
+        function updateBufferPreview() {
+            if (numericValue && numericValue.trim() !== "") {
+                bufferPreviewSpan.innerHTML = `<span class="text-green-300">${escapeHtml(numericValue.trim())}</span>`;
+                return;
+            }
+            const activeLetters = Object.keys(selectedOptions).filter(k => selectedOptions[k]);
+            if (activeLetters.length === 0) {
+                bufferPreviewSpan.innerHTML = `<span class="text-gray-500">(no answer selected)</span>`;
+            } else {
+                bufferPreviewSpan.innerHTML = `<span class="text-yellow-300">${activeLetters.join(' + ')}</span>`;
+            }
+        }
+
+        function getCurrentBufferAnswer() {
+            if (numericValue && numericValue.trim() !== "") {
+                return numericValue.trim();
+            }
+            const activeLetters = Object.keys(selectedOptions).filter(k => selectedOptions[k]);
+            if (activeLetters.length === 0) return null;
+            return activeLetters.join(',');
+        }
+
+        function updateQuestionTileUI(qNumber) {
+            const tile = document.getElementById(`q_tile_${qNumber}`);
+            if (!tile) return;
+            const answer = studentAnswers[qNumber];
+            const answerPreviewSpan = tile.querySelector('.answer-preview');
+            const isReview = (answer === 'R');
+
+            if (answer !== null && answer !== "") {
+                if (isReview) {
+                    tile.classList.add('review');
+                    tile.classList.remove('answered');
+                    if (answerPreviewSpan) {
+                        answerPreviewSpan.innerHTML = 'REVIEW';
+                        answerPreviewSpan.classList.add('review-text');
+                        answerPreviewSpan.classList.remove('empty');
+                    }
+                } else {
+                    tile.classList.add('answered');
+                    tile.classList.remove('review');
+                    if (answerPreviewSpan) {
+                        answerPreviewSpan.innerHTML = escapeHtml(formatAnswerForDisplay(answer));
+                        answerPreviewSpan.classList.remove('review-text');
+                        answerPreviewSpan.classList.remove('empty');
+                    }
+                }
+            } else {
+                tile.classList.remove('answered', 'review');
+                tile.classList.add('bg-exam-surface');
+                if (answerPreviewSpan) {
+                    answerPreviewSpan.innerHTML = "—";
+                    answerPreviewSpan.classList.add('empty');
+                    answerPreviewSpan.classList.remove('review-text');
+                }
+            }
+        }
+
+        function saveAnswerToQuestion(qNumber) {
+            if (qNumber < 1 || qNumber > TOTAL_QS) return;
+            const answer = getCurrentBufferAnswer();
+            studentAnswers[qNumber] = (answer && answer !== "") ? answer : null;
+            updateQuestionTileUI(qNumber);
+            updateAnsweredCount();
+            const tile = document.getElementById(`q_tile_${qNumber}`);
+            if (tile) {
+                tile.style.transform = 'scale(0.98)';
+                setTimeout(() => { if (tile) tile.style.transform = ''; }, 150);
+            }
+        }
+
+        function updateAnsweredCount() {
+            const answered = studentAnswers.filter(a => a !== null && a !== "" && a !== 'R').length;
+            answeredCountSpan.innerText = answered;
+        }
+
+        function clearBuffer() {
+            for (let letter of ['A', 'B', 'C', 'D']) {
+                if (selectedOptions[letter]) {
+                    selectedOptions[letter] = false;
+                    const btn = optBtns[letter];
+                    if (btn) {
+                        btn.classList.remove('border-exam-accent', 'bg-blue-500/20', 'text-exam-accent');
+                        btn.classList.add('border-exam-border', 'text-gray-300');
+                    }
+                }
+            }
+            numericInput.value = "";
+            numericValue = "";
+            updateBufferPreview();
+        }
+
+        function handleClearEntry() {
+            clearBuffer();
+            const notif = document.createElement('div');
+            notif.className = 'fixed bottom-20 right-6 bg-gray-700 text-white px-3 py-1 rounded text-xs z-50';
+            notif.innerText = 'Buffer cleared';
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 1200);
+        }
+
+        function syncOptionButtons() {
+            for (let letter of ['A', 'B', 'C', 'D']) {
+                const btn = optBtns[letter];
+                if (btn) {
+                    if (selectedOptions[letter]) {
+                        btn.classList.add('border-exam-accent', 'bg-blue-500/20', 'text-exam-accent');
+                        btn.classList.remove('border-exam-border', 'text-gray-300');
+                    } else {
+                        btn.classList.remove('border-exam-accent', 'bg-blue-500/20', 'text-exam-accent');
+                        btn.classList.add('border-exam-border', 'text-gray-300');
+                    }
+                }
+            }
+        }
+
+        function toggleOption(letter) {
+            selectedOptions[letter] = !selectedOptions[letter];
+            if (selectedOptions[letter] === true) {
+                if (numericValue && numericValue.trim() !== "") {
+                    numericInput.value = "";
+                    numericValue = "";
+                }
+            }
+            syncOptionButtons();
+            updateBufferPreview();
+        }
+
+        function onNumericInput(e) {
+            numericValue = e.target.value;
+            if (numericValue && numericValue.trim() !== "") {
+                let anySelected = false;
+                for (let letter of ['A', 'B', 'C', 'D']) {
+                    if (selectedOptions[letter]) {
+                        selectedOptions[letter] = false;
+                        anySelected = true;
+                    }
+                }
+                if (anySelected) syncOptionButtons();
+            }
+            updateBufferPreview();
+        }
+
+        function formatTime(secs) {
+            let hours = Math.floor(secs / 3600);
+            let minutes = Math.floor((secs % 3600) / 60);
+            let remainingSecs = secs % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSecs).padStart(2, '0')}`;
+        }
+
+        function updateTimerDisplay() {
+            if (TMD === true) {
+                timerDisplay.innerText = "Timer is Disabled";
+                timerDisplay.classList.add('timer-disabled-text');
+                return;
+            }
+            timerDisplay.innerText = formatTime(timerSeconds);
+            if (timerSeconds <= 0 && !examEnded) {
+                clearInterval(timerInterval);
+                timerDisplay.innerText = "00:00:00";
+                finishExamAndExport();
+            }
+        }
+
+        function startTimer() {
+            if (TMD === true) {
+                // Timer is disabled, no countdown, just show the disabled message and don't start the interval.
+                updateTimerDisplay();
+                return;
+            }
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0 && !examEnded) {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                    // Re-render submit button periodically to update ATL countdown
+                    if (ESD && ATL > 0) {
+                        renderSubmitButton();
+                    }
+                } else if (timerSeconds <= 0 && !examEnded) {
+                    clearInterval(timerInterval);
+                    finishExamAndExport();
+                }
+            }, 1000);
+        }
+
+        function finishExamAndExport() {
+            if (examEnded) return;
+            examEnded = true;
+
+            // Close modal if open
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show', 'hide');
+            }
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            for (let i = 1; i <= TOTAL_QS; i++) {
+                const tile = document.getElementById(`q_tile_${i}`);
+                if (tile) tile.style.pointerEvents = 'none';
+            }
+            numericInput.disabled = true;
+            clearEntryBtn.disabled = true;
+            if (globalSubmitBtn) globalSubmitBtn.disabled = true;
+            for (let btn of Object.values(optBtns)) {
+                if (btn) btn.disabled = true;
+            }
+
+            const exportData = {
+                examCompleted: true,
+                earlySubmission: timerSeconds > 0,
+                timestamp: new Date().toISOString(),
+                totalQuestions: TOTAL_QS,
+                answers: {},
+                timerDisabled: TMD,
+                atlSeconds: ATL
+            };
+
+            for (let i = 1; i <= TOTAL_QS; i++) {
+                exportData.answers[`Q${i}`] = studentAnswers[i] || null;
+            }
+
+            const jsonStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "answers.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'fixed bottom-20 right-6 bg-emerald-600 text-white px-5 py-2 rounded-lg shadow-xl text-sm z-50 font-bold';
+            if (TMD === true) {
+                msgDiv.innerHTML = 'Exam submitted (timer disabled). answers.json exported.';
+            } else {
+                msgDiv.innerHTML = timerSeconds > 0 ? 'Exam submitted early. answers.json exported.' :
+                    'Time expired. answers.json exported.';
+            }
+            document.body.appendChild(msgDiv);
+            setTimeout(() => msgDiv.remove(), 5000);
+        }
+
+        function earlySubmitExam() {
+            if (examEnded) return;
+            if (ESD === false) {
+                const toast = document.createElement('div');
+                toast.className =
+                    'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-800 text-white px-4 py-2 rounded-lg text-xs z-50 shadow-lg';
+                toast.innerText = 'Early submission is disabled by examiner.';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+                return;
+            }
+
+            // Check ATL
+            if (isAtlLockActive()) {
+                const remaining = getAtlRemainingSeconds();
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                const msg = mins > 0 ? `${mins} minute${mins > 1 ? 's' : ''} and ${secs} second${secs > 1 ? 's' : ''}` : `${secs} second${secs > 1 ? 's' : ''}`;
+                const toast = document.createElement('div');
+                toast.className =
+                    'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-yellow-700 text-white px-4 py-2 rounded-lg text-xs z-50 shadow-lg';
+                toast.innerText = `Early submission is locked for ${msg}. Please wait.`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+                return;
+            }
+
+            showSubmitModal();
+        }
+
+        function showSubmitModal() {
+            const modal = document.getElementById('confirmModal');
+            if (!modal) return;
+
+            // Update modal stats
+            const answered = studentAnswers.filter(a => a !== null && a !== "" && a !== 'R').length;
+            const unattempted = TOTAL_QS - answered;
+            document.getElementById('modalAnsweredCount').textContent = answered;
+            document.getElementById('modalUnattemptedCount').textContent = unattempted;
+            document.getElementById('modalTimeRemaining').textContent = formatTime(timerSeconds);
+
+            // Show modal
+            modal.classList.remove('hide', 'hidden');
+            modal.style.display = 'flex';
+            // Trigger animation
+            requestAnimationFrame(() => {
+                modal.classList.add('show');
+            });
+
+            // Store timer value at modal open (for reference)
+            const timerAtModalOpen = timerSeconds;
+
+            // Setup handlers
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            const cancelBtn = document.getElementById('modalCancelBtn');
+
+            // Remove old listeners to avoid duplicates
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newConfirmBtn.addEventListener('click', function() {
+                closeModalAndSubmit(true);
+            });
+
+            newCancelBtn.addEventListener('click', function() {
+                closeModalAndSubmit(false);
+            });
+
+            // Close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModalAndSubmit(false);
+                }
+            });
+
+            // Close on Escape key
+            const escHandler = function(e) {
+                if (e.key === 'Escape') {
+                    closeModalAndSubmit(false);
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+
+            function closeModalAndSubmit(shouldSubmit) {
+                const modal = document.getElementById('confirmModal');
+                if (!modal) return;
+
+                // Hide modal with animation
+                modal.classList.remove('show');
+                modal.classList.add('hide');
+
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.classList.remove('hide');
+                }, 200);
+
+                if (shouldSubmit) {
+                    // Check if timer expired while modal was open
+                    if (timerSeconds <= 0) {
+                        finishExamAndExport();
+                    } else {
+                        finishExamAndExport();
+                    }
+                }
+            }
+        }
+
+        function buildGrid() {
+            questionsGridDiv.innerHTML = '';
+            for (let i = 1; i <= TOTAL_QS; i++) {
+                const tile = document.createElement('div');
+                tile.id = `q_tile_${i}`;
+                tile.className = 'question-tile bg-exam-surface cursor-pointer transition-all';
+                tile.setAttribute('data-qnum', i);
+                const numSpan = document.createElement('div');
+                numSpan.className = 'question-number font-bold';
+                numSpan.innerText = i;
+                const ansSpan = document.createElement('div');
+                ansSpan.className = 'answer-preview empty text-xs';
+                const savedAns = studentAnswers[i];
+                if (savedAns === 'R') {
+                    ansSpan.innerHTML = 'REVIEW';
+                    ansSpan.classList.add('review-text');
+                    ansSpan.classList.remove('empty');
+                    tile.classList.add('review');
+                } else if (savedAns && savedAns !== "") {
+                    ansSpan.innerHTML = escapeHtml(formatAnswerForDisplay(savedAns));
+                    ansSpan.classList.remove('empty');
+                    tile.classList.add('answered');
+                } else {
+                    ansSpan.innerHTML = '—';
+                    ansSpan.classList.add('empty');
+                }
+                tile.appendChild(numSpan);
+                tile.appendChild(ansSpan);
+                tile.addEventListener('click', (function(qnum) {
+                    return function() { saveAnswerToQuestion(qnum); };
+                })(i));
+                questionsGridDiv.appendChild(tile);
+            }
+        }
+
+        function refreshAllTiles() {
+            for (let i = 1; i <= TOTAL_QS; i++) updateQuestionTileUI(i);
+            updateAnsweredCount();
+        }
+
+        function init() {
+            buildGrid();
+            refreshAllTiles();
+
+            // Update toast with current settings
+            document.getElementById('toastTotalQs').textContent = TOTAL_QS;
+
+            const esoEl = document.getElementById('toastEso');
+            esoEl.textContent = ESD ? 'Enabled' : 'Disabled';
+            esoEl.className = 'value ' + (ESD ? 'enabled' : 'disabled');
+
+            const timerEl = document.getElementById('toastTimer');
+            timerEl.textContent = TMD ? 'Disabled' : 'Enabled';
+            timerEl.className = 'value ' + (TMD ? 'disabled' : 'enabled');
+
+            const pdfEl = document.getElementById('toastPdf');
+            pdfEl.textContent = SCREEN ? 'Enabled' : 'Disabled';
+            pdfEl.className = 'value ' + (SCREEN ? 'enabled' : 'disabled');
+
+            // Load scratch notes from localStorage
+            loadScratchNotes();
+
+            // Save scratch notes on input
+            if (scratchTextarea) {
+                scratchTextarea.addEventListener('input', saveScratchNotes);
+            }
+
+            // Start button handler - hides toast and starts timer
+            document.getElementById('startExamBtn').addEventListener('click', function() {
+                document.getElementById('startToast').classList.add('hidden-toast');
+                examStartTime = Date.now();
+                startTimer();
+                // Initial render of submit button after ATL check
+                renderSubmitButton();
+            });
+
+            updateBufferPreview();
+            updatePDFViewerByScreenFlag();
+            updateScreenHeaderDisplay();
+            updateESDHeaderDisplay();
+            renderSubmitButton();
+
+            for (let letter of ['A', 'B', 'C', 'D']) {
+                const btn = optBtns[letter];
+                if (btn) {
+                    btn.addEventListener('click', (function(l) {
+                        return function() { toggleOption(l); };
+                    })(letter));
+                }
+            }
+
+            numericInput.addEventListener('input', onNumericInput);
+            clearEntryBtn.addEventListener('click', handleClearEntry);
+            syncOptionButtons();
+
+            // Periodic ATL update (every second) to keep button state fresh
+            setInterval(() => {
+                if (ESD && ATL > 0 && !examEnded) {
+                    renderSubmitButton();
+                }
+            }, 1000);
+
+            const style = document.createElement('style');
+            style.textContent = `
+                .question-tile { transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+                .answer-preview { font-family: 'Courier New', monospace; font-weight: 600; letter-spacing: 0.3px; }
+                .answer-preview.empty { color: #94a3b8; font-style: italic; }
+                .question-tile.review .answer-preview { color: #e9d5ff; font-weight: 700; }
+                .timer-disabled-text { color: #f97316; font-weight: bold; text-shadow: 0 0 2px rgba(0,0,0,0.5); }
+            `;
+            document.head.appendChild(style);
+        }
+
+        init();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</body>
+</html>
